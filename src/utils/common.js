@@ -16,3 +16,17 @@ export const resolveRelative = (depth, dir) => {
 
 export const isFileValid = (file) =>
   ['.js', '.ts', '.mjs'].includes(path.extname(file));
+
+export function matchAll(regex, string, addition) {
+  const matches = [];
+  for (const match of string.matchAll(regex)) {
+    matches.push({
+      ...addition,
+      ...match.groups,
+      code: match[0],
+      start: match.index,
+      end: match.index + match[0].length,
+    });
+  }
+  return matches;
+}

@@ -1,4 +1,14 @@
 import path from 'path';
+import { pathToFileURL } from 'url';
+import {
+  findStaticImports,
+  findDynamicImports,
+  findExports,
+  genImport,
+  genDynamicImport,
+  resolvePath,
+  parseStaticImport,
+} from 'mlly';
 import { promisify } from 'util';
 import {
   promises as fs,
@@ -11,6 +21,7 @@ import Stream, { Writable, Transform, Readable } from 'stream';
 import {
   calcDepth,
   isFileValid,
+  matchAll,
   replaceStar,
   resolveRelative,
 } from './common.js';
@@ -54,31 +65,25 @@ export const createImportStream = (root) =>
     },
   });
 
-const ESM_IMPORT_LOCAL_PATTERN =
-  /(import|import(?:\s.*)(.*)(?:\s.*)from)(?:\s.*)\'(?<name>(\.\/|\.\.\/).*)\'/g;
+const EXPORT_STAR_RE =
+  /\bexport\s*(\*)\s*(\s*from\s*["']\s*(?<specifier>.*[@\w_-]+)\s*["'][^\n]*)?/g;
 
-const tryLstat = (ldir) => {
-  try {
-    return lstatSync(ldir);
-  } catch (error) {
-    return null;
+const replaceModules = async (content, contentFolder, modules) => {
+  for (const module of modules) {
+    const modulePath = await resolvePath(module.specifier, {
+      url: pathToFileURL(contentFolder),
+    });
+    const moduleRelative = path.relative(contentFolder, modulePath);
+    const moduleSpecifier = moduleRelative.startsWith('.')
+      ? moduleRelative
+      : './'.concat(moduleRelative);
+    const moduleCode = module.code.replace(module.specifier, moduleSpecifier);
+    content = content.replace(module.code, moduleCode);
   }
-};
-
-const resolveJsLstatDir = (dir) => {
-  const hasExtension = !!path.extname(dir);
-  const isDir = tryLstat(dir);
-  if (isDir) return isDir;
-  const fileDir = hasExtension ? dir : `${dir}.js`;
-  const isFile = tryLstat(fileDir);
-  if (isFile) return isFile;
-  return null;
 };
 
 export const createReplaceStream = (tsconfig, rootDir, esm = false) => {
   const { paths = {} } = tsconfig?.compilerOptions;
-  // const esm = true;
-  const esmExtension = 'js';
   const moduleAlias = Object.entries(paths).map(([key, value]) => [
     replaceStar(key),
     replaceStar(value[0]),
@@ -86,31 +91,36 @@ export const createReplaceStream = (tsconfig, rootDir, esm = false) => {
 
   return new Transform({
     objectMode: true,
-    transform(chunk, enc, cb) {
+    async transform(chunk, enc, cb) {
       try {
         let content = chunk.content.toString('utf-8');
+        const contentFolder = path.resolve(rootDir, path.dirname(chunk.path));
         for (const [alias, aliasRelative] of moduleAlias) {
           const aliasRegexp = new RegExp(alias, 'g');
           const aliasAbsolute = resolveRelative(chunk.depth, aliasRelative);
           content = content.replace(aliasRegexp, aliasAbsolute);
         }
         if (esm) {
-          for (const r of content.matchAll(ESM_IMPORT_LOCAL_PATTERN)) {
-            const { name } = r.groups;
-            const dirLstat = resolveJsLstatDir(path.resolve(rootDir, name));
-            if (!dirLstat)
-              return exit(
-                `cannot resolve import ${name} in ${path.relative(
-                  process.cwd(),
-                  path.resolve(rootDir, chunk.path)
-                )}`
-              );
-            const dirResolved = dirLstat.isFile()
-              ? name
-              : [name, 'index'].join(path.sep);
-            const fileDir = `${dirResolved}.${esmExtension}`;
-            content = content.replace(name, fileDir);
-          }
+          const staticModules = [
+            findStaticImports(content),
+            findExports(content),
+            matchAll(EXPORT_STAR_RE, content, { type: 'star' }),
+          ]
+            .flatMap((module) => module.flat())
+            .filter(({ type }) => type !== 'declaration')
+            .filter(({ specifier }) => specifier.includes('./'));
+
+          const dynamicModules = findDynamicImports(content)
+            .filter(({ expression }) => expression.includes('./'))
+            .map((module) => ({
+              ...module,
+              specifier: module.expression.replace(/'|"/g, ''),
+            }));
+
+          await Promise.all([
+            replaceModules(content, contentFolder, staticModules),
+            replaceModules(content, contentFolder, dynamicModules),
+          ]);
         }
         return cb(null, {
           ...chunk,
