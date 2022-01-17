@@ -1,0 +1,18 @@
+import path from 'path';
+
+export const calcDepth = (root, rootDir) => {
+  const rootDepth = root.split(path.sep).length;
+  const rootDirDepth = rootDir.split(path.sep).length;
+  return rootDepth - rootDirDepth;
+};
+
+export const replaceStar = (s) => s.replace('/*', '');
+
+export const resolveRelative = (depth, dir) => {
+  const array = new Array(depth).fill('..');
+  if (depth === 0) return `./${dir}`;
+  return path.join(...array, dir);
+};
+
+export const isFileValid = (file) =>
+  ['.js', '.ts', '.mjs'].includes(path.extname(file));

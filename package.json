@@ -1,0 +1,31 @@
+{
+  "name": "ts-alias-replacer",
+  "version": "1.0.4",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "ts-alias-replacer": "index.js"
+  },
+  "author": {
+    "email": "ellyofreitas13@gmail.com",
+    "name": "Ellyo Freitas",
+    "url": "https://github.com/ellyofreitas"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ellyofreitas/ts-alias-replacer"
+  },
+  "bugs": {
+    "url": "https://github.com/ellyofreitas/ts-alias-replacer/issues"
+  },
+  "homepage": "https://github.com/ellyofreitas/ts-alias-replacer#readme",
+  "keywords": [
+    "typescript",
+    "alias",
+    "replacer"
+  ],
+  "engines": {
+    "node": ">= 14"
+  }
+}
