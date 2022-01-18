@@ -1,0 +1,28 @@
+name: Publish
+on:
+  release:
+    types: [created]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: "Build"
+        run: |
+          yarn --lockfile-freeze
+          yarn version --no-git-tag-version --new-version $RELEASE_TAG_NAME
+        env:
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+      - name: "Publish"
+        run: yarn publish --tag $RELEASE_TARGET_BRANCH
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TARGET_BRANCH: ${{ github.event.release.target_commitish }}
