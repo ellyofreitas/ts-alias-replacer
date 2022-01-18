@@ -21,8 +21,9 @@ jobs:
           yarn version --no-git-tag-version --new-version $RELEASE_TAG_NAME
         env:
           RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+
       - name: "Publish"
-        run: yarn publish --tag $RELEASE_TARGET_BRANCH
+        run: yarn publish --tag $RELEASE_TARGET_BRANCH --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TARGET_BRANCH: ${{ github.event.release.target_commitish }}
