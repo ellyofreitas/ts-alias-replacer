@@ -68,9 +68,22 @@ export const createImportStream = (root) =>
 const EXPORT_STAR_RE =
   /\bexport\s*(\*)\s*(\s*from\s*["']\s*(?<specifier>.*[@\w_-]+)\s*["'][^\n]*)?/g;
 
+const lstatIsDirectory = (dir) => {
+  try {
+    return lstatSync(dir)?.isDirectory();
+  } catch (error) {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  }
+};
+
 const replaceModules = async (content, contentFolder, modules) => {
   for (const module of modules) {
-    const modulePath = await resolvePath(module.specifier, {
+    const isDir = lstatIsDirectory(path.join(contentFolder, module.specifier));
+    const specifier = isDir
+      ? `${module.specifier}${path.sep}index`
+      : module.specifier;
+    const modulePath = await resolvePath(specifier, {
       url: pathToFileURL(contentFolder),
     });
     const moduleRelative = path.relative(contentFolder, modulePath);
@@ -80,6 +93,7 @@ const replaceModules = async (content, contentFolder, modules) => {
     const moduleCode = module.code.replace(module.specifier, moduleSpecifier);
     content = content.replace(module.code, moduleCode);
   }
+  return content;
 };
 
 export const createReplaceStream = (tsconfig, rootDir, esm = false) => {
@@ -117,10 +131,12 @@ export const createReplaceStream = (tsconfig, rootDir, esm = false) => {
               specifier: module.expression.replace(/'|"/g, ''),
             }));
 
-          await Promise.all([
-            replaceModules(content, contentFolder, staticModules),
-            replaceModules(content, contentFolder, dynamicModules),
-          ]);
+          content = await replaceModules(content, contentFolder, staticModules);
+          content = await replaceModules(
+            content,
+            contentFolder,
+            dynamicModules
+          );
         }
         return cb(null, {
           ...chunk,
