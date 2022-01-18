@@ -21,8 +21,12 @@ jobs:
         env:
           RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
 
-      - name: "Publish"
-        run: yarn publish --tag $RELEASE_TARGET_BRANCH --access public
+      - name: "Setup npm token"
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .yarnrc
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: "Publish"
+        run: yarn publish --use-yarnrc --tag $RELEASE_TARGET_BRANCH
+        env:
           RELEASE_TARGET_BRANCH: ${{ github.event.release.target_commitish }}
