@@ -4,10 +4,7 @@ import {
   findStaticImports,
   findDynamicImports,
   findExports,
-  genImport,
-  genDynamicImport,
   resolvePath,
-  parseStaticImport,
 } from 'mlly';
 import { promisify } from 'util';
 import {
@@ -119,8 +116,6 @@ export const createReplaceStream = (tsconfig, rootDir, esm = false) => {
             .flatMap((module) => module.flat())
             .filter(({ type }) => type !== 'declaration')
             .filter(({ specifier }) => specifier?.includes('./'));
-
-          console.log(staticModules.some((a) => a.type === 'star'));
 
           const dynamicModules = findDynamicImports(content)
             .filter(({ expression }) => expression.includes('./'))
