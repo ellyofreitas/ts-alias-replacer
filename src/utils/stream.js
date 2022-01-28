@@ -65,9 +65,6 @@ export const createImportStream = (root) =>
     },
   });
 
-const EXPORT_STAR_RE =
-  /\bexport\s*(\*)\s*(\s*from\s*["']\s*(?<specifier>.*[@\w_-]+)\s*["'][^\n]*)?/g;
-
 const lstatIsDirectory = (dir) => {
   try {
     return lstatSync(dir)?.isDirectory();
@@ -118,11 +115,12 @@ export const createReplaceStream = (tsconfig, rootDir, esm = false) => {
           const staticModules = [
             findStaticImports(content),
             findExports(content),
-            matchAll(EXPORT_STAR_RE, content, { type: 'star' }),
           ]
             .flatMap((module) => module.flat())
             .filter(({ type }) => type !== 'declaration')
-            .filter(({ specifier }) => specifier.includes('./'));
+            .filter(({ specifier }) => specifier?.includes('./'));
+
+          console.log(staticModules.some((a) => a.type === 'star'));
 
           const dynamicModules = findDynamicImports(content)
             .filter(({ expression }) => expression.includes('./'))

@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-mlly@^0.3.19:
-  version "0.3.19"
-  resolved "https://registry.yarnpkg.com/mlly/-/mlly-0.3.19.tgz#a4aac171d2142eafc9c9d4c1937dac5a11f70565"
-  integrity sha512-zMq5n3cOf4fOzA4WoeulxagbAgMChdev3MgP6K51k7M0u2whTXxupfIY4VVzws4vxkiWhwH1rVQcsw7zDGfRhA==
+mlly@^0.4.1:
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/mlly/-/mlly-0.4.1.tgz#e483f4be0cf3ffed13adbe93a1cfa849787a6be8"
+  integrity sha512-MMJfTYwiasPah+Tx1s948OWd/+dnSxMpwPDgIt4uhnsGRuKgWG6RxUA1SzQI7Tvv0WCcpdast7htAuLU6J7YcA==
